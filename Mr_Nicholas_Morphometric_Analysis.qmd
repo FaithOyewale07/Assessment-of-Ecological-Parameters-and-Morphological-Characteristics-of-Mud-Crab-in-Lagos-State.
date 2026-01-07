@@ -1,0 +1,756 @@
+---
+title: "Morphometric Analysis of G. cruentata."
+author: "Nicholas Eteobong & Faith Oyewale OLABISI"
+format: pdf
+toc: true
+toc-depth: 7
+monofont: 'Arial Black'
+editor: visual
+---
+
+# Location: Unilag Front
+
+## Introduction
+
+This analysis was carried out to intreprete the morphometric analysis data taken from two selected location at Unilag front and National Theater.
+
+## Data Importation and Loading of the Libraries in R programming for Analysis.
+
+Packages used for the analysis include the following packages: Tidyverse, dplyr, car, knitr, ggpubr, readxl and gridextra.
+
+```{r}
+
+## Load the packages for Analysis
+library(tidyverse)
+library(car)
+library(readxl)
+library(ggpubr)
+library(janitor)
+library(knitr)
+```
+
+## Data Cleaning and Manipulation for Analysis
+
+### Data Structure and a glimpse into the Morphometric data.
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+## Load the data
+cruen_data <- read_excel('Morphometric_data.xlsx', sheet = 1)
+
+```
+
+```{r}
+#| echo: false
+cruen_data <- cruen_data |> 
+  janitor::clean_names() |> 
+  mutate(
+    station = as.factor(station),
+    s_e_x = as.factor(s_e_x),
+    season_2023_2024 = as.factor(season_2023_2024),
+    log_cl = as.numeric(log_cl),
+    th_cm = as.numeric(th_cm)
+  )
+cruen_data |> 
+  head()
+```
+
+## Test for Normality/Distribution of Data(Morphometric Data) across all sampling stations and sexes
+
+The normality of the water quality parameters were tested across the sampling stations and seasons using Shapiro-Wilk test and K.S Test. Parameters with P\>0.05 indicate a normal distribution of the data while parameters with a p value less than 0.05 indicate a non- normal distribution of the data set.
+
+```{r}
+#| echo: false
+## Test for Normality/Distribution of the Data for the total weight across
+## the stations
+with(cruen_data, shapiro.test(tw_g[station == 'A']))
+with(cruen_data, shapiro.test(tw_g[station == 'B']))
+with(cruen_data, shapiro.test(tw_g[station == 'C']))
+with(cruen_data, shapiro.test(tw_g[station == 'D']))
+with(cruen_data, shapiro.test(tw_g[station == 'E']))
+
+ks.test(cruen_data$tw_g, 'pnorm')
+ks.test(cruen_data$cw_cm, 'pnorm')
+ks.test(cruen_data$cl_cm, 'pnorm')
+```
+
+## Table showing the Summary Data of G. cruentata by Station, Sex and Season.
+
+```{r}
+#| echo: false
+## Exploratory Data Analysis
+## Summary by Station and Season
+cruen_summary <- cruen_data |> 
+  group_by(station, season_2023_2024) |> 
+  summarise(
+    n = n(),
+    mean_cw = mean(cw_cm),
+    mean_cl = mean(cl_cm),
+    mean_tw = mean(tw_g),
+    sd_cw = sd(cw_cm),
+    sd_cl = sd(cl_cm),
+    sd_tw = sd(tw_g)
+    )
+
+
+## Summary by Sex
+cruen_sex <- cruen_data |> 
+  group_by(s_e_x) |> 
+  summarise(
+    n = n(),
+    mean_cw = mean(cw_cm),
+    mean_cl = mean(cl_cm),
+    mean_tw = mean(tw_g),
+    sd_cw = sd(cw_cm),
+    sd_cl = sd(cl_cm),
+    sd_tw = sd(tw_g)
+  )
+
+cruen_summary |> 
+  kable()
+cruen_sex |> 
+  kable()
+```
+
+### Table showing the Number of Males and Female of G. cruentata
+
+```{r}
+#| echo: false
+## Count of the Number of Males and Females Crab
+carapace_sex <- table(cruen_data$s_e_x) 
+carapace_sex |> 
+  kable()
+```
+
+## Regression Analysis of the Length-Weight Relationship of G. cruentata
+
+The regression analysis was conducted to check the relationship between the length and weight relationship of the sampled species. p\<0.05 indicate there is a sign difference between the length and weight of the sampled species. p\>0.05 indicate that there is no sign difference between the length and weight of the sampled species.
+
+### Linear Regression for Combined Sexes
+
+```{r}
+## Linear Regression Model for combined sex
+lw_model <- lm(cruen_data$log_tw ~ cruen_data$log_cl)
+
+print(coef(lw_model))
+lw_summary <- lw_model |> 
+  summary()
+## Check p value
+lw_summary 
+```
+
+### Check for either Isometric or Allometric Growth
+
+When the b\>3 we assume that there is a positive isometric growth among the sampled species indicating individuals gain weight faster. while when b \<3: this indicate negative isometric (individuals gain weight slowly).
+
+```{r}
+## Check for Isometric or Allometric growth
+b_value <- coef(lw_model)[2] ## Positive Isometric growth (b>3), 
+## Individual gain weight Faster
+b_value |> 
+  kable()
+```
+
+### Regression Plot showing the Length and Weight Relationship of the Combined Sexes
+
+```{r}
+#| echo: false
+## Visualize the Length weight relationship regression line for
+## combined sexes.
+G_plot <- cruen_data |> 
+  ggplot(aes(log_cl, log_tw, color = s_e_x))+
+  geom_point(size = 2,alpha = 0.6)+
+  scale_color_manual(values = c("M" = "#0072B2", "F" = "#D55E00"),
+                     labels = c("M" = "Male", "F" = "Female")) +
+  geom_smooth(method = "lm", se = TRUE, color = "blue", fill = "gray", alpha = 0.1, aes(color = NULL)) +
+  labs(
+    title = "Length-Weight Relationship of G. cruentata (Combined Sexes)",
+    x = "Log Carapace length (Log Cl)",
+    y = "Log Carapace Weight (Log TW)",
+    subtitle = paste("Log Tw =", round(coef(lw_model)[1], 4), "+", round(coef(lw_model)[2], 4), "* Log CL"),
+    color = "Sex"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 12, face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(size = 10, hjust = 0.5),
+    axis.title = element_text(size = 11),
+    axis.text = element_text(size = 10),
+    legend.position = "bottom",
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.4),
+    panel.grid.major = element_line(color = "gray90"),
+    panel.grid.minor = element_line(color = "gray95")
+  )+
+  annotate("text", x = min(cruen_data$log_cl) + 0.05, y = max(cruen_data$log_tw) - 0.1,
+           label = paste("R² =", round(lw_summary$r.squared, 4)),
+           size = 4, hjust = 0)
+
+print(G_plot)
+```
+
+### Linear Regression of the Length-Weight for Male G. cruentata
+
+```{r}
+#| echo: false
+## Individual Linear Regression Model for Male and Female
+male_lw <- cruen_data |> 
+  filter(s_e_x == 'M') 
+
+## Male Regression Model
+male_model <- lm(male_lw$log_tw ~ male_lw$log_cl)
+male_summary <- male_model |> 
+  summary()
+
+male_summary
+```
+
+### Check for either Isometric or Allometric Growth
+
+```{r}
+## Check for Isometric or Allometric Growth
+b_male <- coef(male_model)[2]
+print(b_male) ## Positive Isometric Growth (b>3),
+## Individual gain weight Faster
+```
+
+### Linear Regression of the Length-Weight for Female G. cruentata
+
+```{r}
+#| echo: false
+## Female Regression Model
+female_lw <- cruen_data |> 
+  filter(s_e_x == 'F')
+
+female_model <- lm(female_lw$log_tw ~ female_lw$log_cl)
+female_summary <- female_model |> 
+  summary()
+```
+
+### Check for either Isometric or Allometric Growth
+
+```{r}
+## Check for Isometric or Allometric Growth
+b_female <- coef(female_model)[2]
+print(b_female) ## Negative Isometric Growth (b<3)
+## Individual gain weight Slower
+```
+
+### Regression Plot showing the Length and Weight Relationship of the Male G. cruentata
+
+```{r}
+#| echo: false
+## Visualization for the Length-Weight Relationship between 
+## Individual Sexes
+
+## Male Length-Weight Relationship
+male_plot <- male_lw |> 
+  ggplot(aes(log_cl, log_tw))+
+  geom_point(color = '#0072B2', size = 2, alpha = 0.6)+
+  geom_smooth(method = "lm", se = FALSE, color = "#0072B2", fill = "#0072B2", alpha = 0.2) +
+  labs(
+    title = "Length-Weight Relationship of Male G. cruentata",
+    x = "Log Carapace Length (Log Cl)",
+    y = "Log Total Weight (Log TW)",
+    subtitle = paste("Log TW =", round(coef(male_model)[1], 4), "+", round(coef(male_model)[2], 4), "* Log CL")
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 12, face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(size = 10, hjust = 0.5),
+    axis.title = element_text(size = 11),
+    axis.text = element_text(size = 10),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5),
+    panel.grid.major = element_line(color = "gray90"),
+    panel.grid.minor = element_line(color = "gray95")
+  ) +
+  annotate("text", x = min(male_lw$log_cl) + 0.05, y = max(male_lw$log_tw) - 0.1,
+           label = paste("R² =", round(male_summary$r.squared, 4)),
+           size = 4, hjust = 0)
+print(male_plot)
+
+```
+
+### Regression Plot showing the Length and Weight Relationship of the Female G. cruentata
+
+```{r}
+#| echo: false
+## Female Length-Weight Relationship
+female_plot <- female_lw |> 
+  ggplot(aes(log_cl,log_tw))+
+  geom_point(color = '#D55E00', size = 2, alpha = 0.6)+
+  geom_smooth(method = "lm", se = FALSE, color = "#0072B2", fill = "#D55E00", alpha = 0.2) +
+  labs(
+    title = "Length-Weight Relationship of Female G. cruentata",
+    x = "Log Carapace Length (Log Cl)",
+    y = "Log Total Weight (Log TW)",
+    subtitle = paste("Log TW =", round(coef(female_model)[1], 4), "+", round(coef(female_model)[2], 4), "* Log CL")
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 12, face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(size = 10, hjust = 0.5),
+    axis.title = element_text(size = 11),
+    axis.text = element_text(size = 10),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5),
+    panel.grid.major = element_line(color = "gray90"),
+    panel.grid.minor = element_line(color = "gray95")
+  ) +
+  annotate("text", x = min(female_lw$log_cl) + 0.05, y = max(female_lw$log_tw) - 0.1,
+           label = paste("R² =", round(female_summary$r.squared, 4)),
+           size = 4, hjust = 0)
+  
+print(female_plot)
+```
+
+## Test of Homogeneity of Variance for the Morphometric Data across the Sampling Stations.
+
+When p\>0.05 we assume the sampled data has equality of variance but when p\<0.05 we assume equality of variance was not met.
+
+### For G. cruentata Length
+
+```{r}
+#| echo: false
+## Homogeneity Test of Variance
+## G.cruentata Length
+cl_var <- leveneTest(cruen_data$cl_cm ~ cruen_data$s_e_x * cruen_data$station)
+
+cl_var |> 
+  kable()
+```
+
+### For G. cruentata Weight
+
+```{r}
+#| echo: false
+## Homogeneity Test of Variance
+## G.cruentata Weight
+tw_var <- leveneTest(cruen_data$tw_g ~ cruen_data$s_e_x * cruen_data$station)
+
+tw_var |> 
+  kable()
+```
+
+## Test of Significant differences in the mean of length and Weight of G. cruentata across the Stations.
+
+### For Length
+
+```{r}
+#| echo: false
+# Two-way Anova on Carapace Length 
+cl_anova <- aov(cl_cm ~ s_e_x * station, 
+                data = cruen_data)
+cl_anova |> 
+  anova() |> 
+  kable()
+
+```
+
+### For Weight
+
+```{r}
+#| echo: false
+# Two-way Anova on Carapace weight 
+tw_anova <- aov(tw_g ~ s_e_x * station, 
+                data = cruen_data)
+tw_anova |> 
+  anova() |> 
+  kable()
+```
+
+## Correlation analysis showing the relationship between the Length,Weight,Width of G.cruentata across all station.
+
+```{r}
+#| echo: false
+## Correlation Analysis
+corr_matrix <- cor(cruen_data[, c( "cw_cm", "cl_cm", "tw_g")])
+corr_matrix |> 
+  kable()
+
+```
+
+### Correlation between Carapace Length and Total Weight
+
+```{r}
+## Correlation between Cl and Tw
+cl_tw_cor <- cor.test(cruen_data$cl_cm , cruen_data$tw_g,
+         method = 'pearson')
+print(cl_tw_cor)
+```
+
+### Correlation between Carapace width and Total Weight
+
+```{r}
+## Correlation between cw and Tw
+cw_tw_cor <- cor.test(cruen_data$cw_cm, cruen_data$tw_g)
+print(cw_tw_cor)
+
+```
+
+### Correlation between Carapace Length and Width
+
+```{r}
+## Correlation between cw and cl
+cw_cl_cor <- cor.test(cruen_data$cw_cm, cruen_data$cl_cm)
+print(cw_cl_cor)
+```
+
+# Location: NationalTheater
+
+## Introduction
+
+This analysis was carried out to intreprete the morphometric analysis data taken from National Theater.
+
+## Data Importation and Loading of the Libraries in R programming for Analysis.
+
+Packages used for the analysis include the following packages: Tidyverse, dplyr, car, knitr, ggpubr, readxl and gridextra.
+
+```{r}
+data_cruen <- read_excel('Morphometric_data.xlsx', sheet = 2)
+data_cruen |> 
+  head()
+```
+
+## Data Cleaning and Manipulation for Analysis
+
+### Data Structure and a glimpse into the Morphometric data.
+
+```{r}
+#| echo: false
+data_cruen <- data_cruen |> 
+  janitor::clean_names() |> 
+  mutate(
+    station = as.factor(station),
+    s_e_x = as.factor(s_e_x),
+    season_2023_2024 = as.factor(season_2023_2024),
+    log_cl = as.numeric(round(log_cl, 2)),
+    th_cm = as.numeric(th_cm)
+  )
+
+data_cruen |> 
+  colnames()
+```
+
+## Table showing the Summary Data of G. cruentata by Station, Sex and Season.
+
+```{r}
+#| echo: false
+## Exploratory Data Analysis
+## Summary by Station and Season
+data_summary <- data_cruen |> 
+  group_by(station, season_2023_2024) |> 
+  summarise(
+    n = n(),
+    mean_cw = mean(cw_cm),
+    mean_cl = mean(cl_cm),
+    mean_tw = mean(tw_g),
+    sd_cw = sd(cw_cm),
+    sd_cl = sd(cl_cm),
+    sd_tw = sd(tw_g)
+  )
+
+## Summary by Sex
+data_sex <- data_cruen |> 
+  group_by(s_e_x) |> 
+  summarise(
+    n = n(),
+    mean_cw = mean(cw_cm),
+    mean_cl = mean(cl_cm),
+    mean_tw = mean(tw_g),
+    sd_cw = sd(cw_cm),
+    sd_cl = sd(cl_cm),
+    sd_tw = sd(tw_g)
+  )
+
+data_summary |> 
+  kable()
+
+data_sex |> 
+  kable()
+```
+
+### Table showing the Number of Males and Female of G. cruentata
+
+```{r}
+#| echo: false
+## Count of the Number of Males and Females Crab
+carapace_sex_2 <- table(data_cruen$s_e_x) 
+carapace_sex_2 |> 
+  kable()
+```
+
+## Regression Analysis of the Length-Weight Relationship of G. cruentata
+
+The regression analysis was conducted to check the relationship between the length and weight relationship of the sampled species. p\<0.05 indicate there is a sign difference between the length and weight of the sampled species. p\>0.05 indicate that there is no sign difference between the length and weight of the sampled species.
+
+### Linear Regression for Combined Sexes
+
+```{r}
+#| echo: false
+## Linear Regression Model for combined sex
+lw_model_2 <- lm(data_cruen$log_tw ~ data_cruen$log_cl)
+
+print(coef(lw_model_2))
+lw_summary_2 <- lw_model_2 |> 
+  summary()
+## Check p value
+print(lw_summary_2)
+```
+
+### Check for either Isometric or Allometric Growth
+
+When the b\>3 we assume that there is a positive isometric growth among the sampled species indicating individuals gain weight faster. while when b \<3: this indicate negative isometric (individuals gain weight slowly).
+
+```{r}
+## Check for Isometric or Allometric growth
+b_value_2 <- coef(lw_model_2)[2] ## Positive Isometric growth (b>3), 
+## Individual gain weight Faster
+b_value_2 |> 
+  kable()
+
+```
+
+### Regression Plot showing the Length and Weight Relationship of the Combined Sexes
+
+```{r}
+#| echo: false
+## Visualize the Length weight relationship regression line for
+## combined sexes.
+G_plot_2 <- data_cruen |> 
+  ggplot(aes(log_cl, log_tw, color = s_e_x))+
+  geom_point(size = 2,alpha = 0.6)+
+  scale_color_manual(values = c("M" = "#0072B2", "F" = "#D55E00"),
+                     labels = c("M" = "Male", "F" = "Female")) +
+  geom_smooth(method = "lm", se = TRUE, color = "blue", fill = "gray", alpha = 0.1, aes(color = NULL)) +
+  labs(
+    title = "Length-Weight Relationship of G. cruentata (Combined Sexes)",
+    x = "Log Carapace length (Log Cl)",
+    y = "Log Carapace Weight (Log TW)",
+    subtitle = paste("Log Tw =", round(coef(lw_model_2)[1], 4), "+", round(coef(lw_model_2)[2], 4), "* Log CL"),
+    color = "Sex"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 12, face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(size = 10, hjust = 0.5),
+    axis.title = element_text(size = 11),
+    axis.text = element_text(size = 10),
+    legend.position = "bottom",
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.4),
+    panel.grid.major = element_line(color = "gray90"),
+    panel.grid.minor = element_line(color = "gray95")
+  )+
+  annotate("text", x = min(data_cruen$log_cl) + 0.05, y = max(data_cruen$log_tw) - 0.1,
+           label = paste("R² =", round(lw_summary_2$r.squared, 4)),
+           size = 4, hjust = 0)
+
+G_plot_2
+```
+
+### Linear Regression of the Length-Weight for Male G. cruentata
+
+```{r}
+#| echo: false
+## Individual Linear Regression Model for Male and Female
+male_lw_2 <- data_cruen |> 
+  filter(s_e_x == 'M') 
+
+## Male Regression Model
+male_model_2 <- lm(male_lw_2$log_tw ~ male_lw_2$log_cl)
+male_summary_2 <- male_model_2 |> 
+  summary()
+```
+
+### Check for either Isometric or Allometric Growth
+
+```{r}
+## Check for Isometric or Allometric Growth
+b_male_2 <- coef(male_model_2)[2]
+print(b_male_2) ## Positive Isometric Growth (b>3),
+## Individual gain weight Faster
+```
+
+### Linear Regression of the Length-Weight for Male G. cruentata
+
+```{r}
+#| echo: false
+## Female Regression Model
+female_lw_2 <- data_cruen |> 
+  filter(s_e_x == 'F')
+
+female_model_2 <- lm(female_lw_2$log_tw ~ female_lw_2$log_cl)
+female_summary_2 <- female_model_2 |> 
+  summary()
+```
+
+### Check for either Isometric or Allometric Growth
+
+```{r}
+## Check for Isometric or Allometric Growth
+b_female_2 <- coef(female_model_2)[2]
+b_female_2 |> 
+  kable()## Negative Isometric Growth (b<3)
+## Individual gain weight Slower
+```
+
+### Regression Plot showing the Length and Weight Relationship of the Male G. cruentata
+
+```{r}
+#| echo: false
+## Visualization for the Length-Weight Relationship between 
+## Individual Sexes
+
+## Male Length-Weight Relationship
+male_plot_2 <- male_lw_2 |> 
+  ggplot(aes(log_cl, log_tw))+
+  geom_point(color = '#0072B2', size = 2, alpha = 0.6)+
+  geom_smooth(method = "lm", se = FALSE, color = "#0072B2", fill = "#0072B2", alpha = 0.2) +
+  labs(
+    title = "Length-Weight Relationship of Male G. cruentata",
+    x = "Log Carapace Length (Log Cl)",
+    y = "Log Total Weight (Log TW)",
+    subtitle = paste("Log TW =", round(coef(male_model_2)[1], 4), "+", round(coef(male_model_2)[2], 4), "* Log CL")
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 12, face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(size = 10, hjust = 0.5),
+    axis.title = element_text(size = 11),
+    axis.text = element_text(size = 10),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5),
+    panel.grid.major = element_line(color = "gray90"),
+    panel.grid.minor = element_line(color = "gray95")
+  ) +
+  annotate("text", x = min(male_lw_2$log_cl) + 0.05, y = max(male_lw_2$log_tw) - 0.1,
+           label = paste("R² =", round(male_summary_2$r.squared, 4)),
+           size = 4, hjust = 0)
+
+male_plot_2
+```
+
+### Regression Plot showing the Length and Weight Relationship of the Female G. cruentata
+
+```{r}
+#| echo: false
+## Female Length-Weight Relationship
+female_plot_2 <- female_lw_2 |> 
+  ggplot(aes(log_cl,log_tw))+
+  geom_point(color = '#D55E00', size = 2, alpha = 0.6)+
+  geom_smooth(method = "lm", se = FALSE, color = "#0072B2", fill = "#D55E00", alpha = 0.2) +
+  labs(
+    title = "Length-Weight Relationship of Female G. cruentata",
+    x = "Log Carapace Length (Log Cl)",
+    y = "Log Total Weight (Log TW)",
+    subtitle = paste("Log TW =", round(coef(female_model_2)[1], 4), "+", round(coef(female_model_2)[2], 4), "* Log CL")
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 12, face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(size = 10, hjust = 0.5),
+    axis.title = element_text(size = 11),
+    axis.text = element_text(size = 10),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5),
+    panel.grid.major = element_line(color = "gray90"),
+    panel.grid.minor = element_line(color = "gray95")
+  ) +
+  annotate("text", x = min(female_lw_2$log_cl) + 0.05, y = max(female_lw_2$log_tw) - 0.1,
+           label = paste("R² =", round(female_summary_2$r.squared, 4)),
+           size = 4, hjust = 0)
+
+female_plot_2
+```
+
+## Test of Homogeneity of Variance for the Morphometric Data across the Sampling Stations.
+
+When p\>0.05 we assume the sampled data has equality of variance but when p\<0.05 we assume equality of variance was not met.
+
+### For G. cruentata Length
+
+```{r}
+#| echo: false
+## Homogeneity Test of Variance
+cl_var_2 <- leveneTest(data_cruen$cl_cm ~ cruen_data$s_e_x * data_cruen$station)
+
+cl_var_2 |> 
+  kable()
+```
+
+### For G. cruentata Weight
+
+```{r}
+tw_var_2 <- leveneTest(data_cruen$tw_g ~ data_cruen$s_e_x * data_cruen$station)
+
+tw_var_2 |> 
+  kable()
+```
+
+## Test of Significant differences in the mean of length and Weight of G. cruentata across the Stations.
+
+### For Length
+
+```{r}
+#| echo: false
+## Two-way anova for comparing diff in Length and Weight 
+## across the seasons
+# Two-way Anova on Carapace Length 
+cl_anova_2 <- aov(cl_cm ~ s_e_x * station, 
+                data = data_cruen)
+cl_anova_2 |> 
+  anova() |> 
+  kable()
+```
+
+### For Weight
+
+```{r}
+#| echo: false
+# Two-way Anova on Carapace Weight
+tw_anova_2 <- aov(tw_g ~ s_e_x * station, 
+                data = data_cruen)
+tw_anova_2 |> 
+  anova() |> 
+  kable()
+```
+
+## Correlation analysis showing the relationship between the Length,Weight,Width of G.cruentata across all station.
+
+```{r}
+#| echo: false
+## Correlation Analysis
+corr_matrix_2 <- cor(data_cruen[, c( "cw_cm", "cl_cm", "tw_g")])
+
+corr_matrix_2 |> 
+  kable()
+
+```
+
+### Correlation between Carapace width and Total Weight
+
+```{r}
+## Correlation between cw and Tw
+cw_tw_cor_2 <- cor.test(data_cruen$cw_cm, data_cruen$tw_g)
+print(cw_tw_cor_2)
+
+```
+
+### Correlation between Carapace width and Length
+
+```{r}
+## Correlation between cw and cl
+cw_cl_cor_2 <- cor.test(data_cruen$cw_cm, data_cruen$cl_cm)
+print(cw_cl_cor_2)
+```
+
+### Correlation between Carapace Length and Total Weight
+
+```{r}
+## Correlation between Cl and Tw
+cl_tw_cor_2 <- cor.test(data_cruen$cl_cm , data_cruen$tw_g,
+                      method = 'pearson')
+print(cl_tw_cor_2)
+```
+
+```{r}
+library(tidyverse)
+```
