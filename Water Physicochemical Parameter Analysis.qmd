@@ -1,0 +1,1094 @@
+---
+title: "Physicochemical Parameters Analysis across the Sampling Stations"
+author: "Nicholas Eteobong"
+format: docx
+toc: true
+toc-title: 'Table of Contexnt'
+toc-depth: 7
+monofont: 'Arial Black'
+editor: visual
+editor_options: 
+  chunk_output_type: inline
+---
+
+# Location: Unilag Front
+
+## Introduction
+
+This analysis was carried out to intreprete the physicochemical parameters data taken from two selected location at Unilag front and National Theater.
+
+## Data Importation and Loading of the Libraries in R programming for Analysis.
+
+Packages used for the analysis include the following packages: Tidyverse, dplyr, car, knitr, ggpubr, readxl and gridextra.
+
+```{r}
+#| message: false
+#| warning: false
+## Load the necesssary packages for the analysis
+library(tidyverse)
+library(dplyr)
+library(car)
+library(ggpubr)
+library(readxl)
+library(gridExtra)
+library(knitr)
+library(corrplot)
+```
+
+### Data Structure and a glimpse into the Water Quality data.
+
+```{r}
+#| message: false
+#| warning: false
+## Import the dataset for analysis
+water_data <- read_excel('PhD Analysis/WaterParameterLocation_1.xlsx', 
+                          sheet = 3)
+
+water_data |> 
+  head()
+```
+
+## Data Cleaning and Manipulation for Analysis
+
+```{r}
+#| message: false
+#| warning: false
+## Data Cleaning and Manipulation
+water_data <- water_data |> 
+  janitor::clean_names()
+
+water_data |> 
+  colnames()
+
+water_data <- water_data |> 
+  mutate(
+    months = as.factor(months),
+    station = as.factor(station),
+    season_2023_2024 = as.factor(season_2023_2024)
+  )
+```
+
+## Test for Normality/Distribution of Data(Physicochemical Parameters) across all sampling stations and seasons
+
+The normality of the water quality parameters were tested across the sampling stations and seasons using Shapiro-Wilk test. Parameters with P\>0.05 indicate a normal distribution of the data while parameters with a p value less than 0.05 indicate a non- normal distribution of the data set.
+
+```{r}
+## Check for Normality of Temp, Salinity, dissolved Oxygen, and pH against
+## the stations and the seasons.
+## For Temperature
+
+temp_model <- lm(water_temp_0c ~ station * season_2023_2024, 
+                 data = water_data)
+
+temp_resd <- residuals(object = temp_model)
+
+temp_resd |> 
+  shapiro.test()
+```
+
+### For Salinity
+
+```{r}
+#| echo: false
+## For Salinity
+salin_model <- lm(salinity_0_00 ~ station * season_2023_2024, 
+                  data = water_data)
+
+salin_resd <- residuals(object = salin_model)
+
+salin_resd |> 
+  shapiro.test()
+ 
+```
+
+### For Dissolved Oxygen
+
+```{r}
+#| echo: false
+## For Dissolved Oxygen
+do_model <- lm(do_mg_l ~ station * season_2023_2024,
+               data = water_data)
+
+do_resd <- residuals(object = do_model)
+
+do_resd |> 
+  shapiro.test()
+```
+
+### For pH Levels
+
+```{r}
+#| echo: false
+## For pH Levels
+
+ph_model <- lm(p_h ~ station * season_2023_2024, data = water_data)
+
+ph_resd <- residuals(object = ph_model)
+
+ph_resd |> 
+  shapiro.test()
+```
+
+## Test of Homogeneity of Variance for the Physicochemical Parameters across the Sampling Stations and the Seasons.
+
+### For Temperature
+
+```{r}
+#| echo: false
+## Homogeneity of variance for the temperature across the stations 
+## and seasons.
+
+temp_var <- leveneTest(water_temp_0c ~ station * season_2023_2024,
+                        data = water_data)
+
+temp_var |> 
+  kable()
+```
+
+### For Dissolved Oxygen across the five sampling stations and seasons.
+
+```{r}
+#| echo: false
+## For Dissolved Oxygen
+do_var <- leveneTest(do_mg_l ~ station * season_2023_2024,
+                       data = water_data)
+
+do_var |> 
+  kable()
+```
+
+### For Salinity across the five sampling stations and seasons
+
+```{r}
+#| echo: false
+## For Salinity
+salin_var <- leveneTest(salinity_0_00 ~ station * season_2023_2024,
+                       data = water_data)
+
+salin_var |> 
+  kable()
+
+
+```
+
+### For Total Dissolved Solids across the five sampling stations and seasons
+
+```{r}
+#| echo: false
+## For Total Dissolved Solids
+tds_var <- leveneTest(tds_mg_l ~ station * season_2023_2024,
+                       data = water_data)
+
+tds_var |> 
+  kable()
+```
+
+### For pH levels across the five sampling stations and seasons
+
+```{r}
+#| echo: false
+## For pH 
+ph_var <- leveneTest(p_h ~ station * season_2023_2024,
+                       data = water_data)
+
+ph_var |> 
+  kable()
+```
+
+## Test of Significant differences in the mean of some-selected parameters across the Stations and Seasons
+
+### For Temperature
+
+```{r}
+## Check the difference in temp, ph, salinity, total dissolved solid across all 
+## four station for the first season.
+
+temp_anova <- aov(water_temp_0c ~ station * season_2023_2024, data = 
+                    water_data)
+temp_anova |> 
+  anova()
+  
+temp_anova |> 
+  TukeyHSD() 
+```
+
+### For Salinity
+
+```{r}
+#| echo: false
+salinity_anova <- aov(salinity_0_00 ~ station * season_2023_2024,
+                      data = water_data)
+salinity_anova |> 
+  anova() |> 
+  kable()
+
+salinity_anova |> 
+  TukeyHSD()
+```
+
+### For pH Levels
+
+```{r}
+#| echo: false
+ph_anova <- aov(p_h ~ station * season_2023_2024, data = water_data)
+
+ph_anova |> 
+  anova() |> 
+  kable()
+
+ph_anova |> 
+  TukeyHSD()
+```
+
+### For Dissolved Oxygen
+
+```{r}
+#| echo: false
+do_anova <- aov(do_mg_l ~ station * season_2023_2024, data = water_data)
+
+do_anova |> 
+  anova() |> 
+  kable()
+
+do_anova |> 
+  TukeyHSD()
+```
+
+### For Total Dissolved Solids
+
+```{r}
+#| echo: false
+tds_anova <- aov(tds_mg_l ~ station * season_2023_2024, data = water_data)
+
+tds_anova |> 
+  anova() |> 
+  kable()
+
+tds_anova |> 
+  TukeyHSD()
+```
+
+### For Electrical Conductivity
+
+```{r}
+#| echo: false
+ec_anova <- aov(conductivity_u_s_cm ~ station * season_2023_2024,
+                data = water_data)
+
+ec_anova |> 
+  anova() |> 
+  kable()
+
+ec_anova |> 
+  TukeyHSD()
+```
+
+### For Water Transparency
+
+```{r}
+#| echo: false
+trans_anova <- aov(transparency_m ~ station * season_2023_2024, data = water_data)
+
+trans_anova |> 
+  anova() |> 
+  kable()
+
+trans_anova |> 
+  TukeyHSD()
+```
+
+## Computing the Mean, SD and SE of some selected physicochemical Parameters across the Sampling Stations and Seasons.
+
+```{r}
+#| echo: false
+## Exploratory data analysis
+water_summary <- water_data |> 
+  group_by(station, season_2023_2024) |> 
+  summarise(
+    n = n(),
+    mean_temp = mean(water_temp_0c),
+    mean_oxygen = mean(do_mg_l),
+    mean_salinity = mean(salinity_0_00),
+    mean_ph = mean(p_h),
+    sd_temp = sd(water_temp_0c),
+    sd_oxygen = sd(do_mg_l),
+    sd_salinity = sd(salinity_0_00),
+    sd_ph = sd(p_h),
+    se_temp = sd(water_temp_0c)/sqrt(n()),
+    se_oxygen = sd(do_mg_l)/sqrt(n()),
+    se_salinity = sd(salinity_0_00)/sqrt(n()),
+    se_ph = sd(p_h)/sqrt(n()),
+    .groups = 'drop'
+  ) 
+
+water_summary |> 
+  kable()
+```
+
+### Table showing the mean value of selected parameters across the sampling stations and seasons
+
+```{r}
+#| echo: false 
+water_pivot <- water_data |> 
+  pivot_longer(
+    cols = c(water_temp_0c, p_h, do_mg_l, tds_mg_l,
+             transparency_m, salinity_0_00, conductivity_u_s_cm),
+    names_to = 'Parameter',
+    values_to = 'Value'
+  ) |> 
+  group_by(station, season_2023_2024, Parameter) |> 
+  summarise(
+    mean_val = mean(Value, na.rm = TRUE),
+    se = sd(Value, na.rm = TRUE)/ sqrt(n())
+  )
+
+water_pivot |> 
+  kable()
+
+```
+
+## Seasonal Variation of the different Physicochemical Parameters across the stations and seasons.
+
+### For Water Temperature
+
+```{r}
+#| echo: false
+## Seasonal Variation across different Physicochemical Parameters for Temperature
+temp_plot <- water_pivot |> 
+  filter(Parameter == 'water_temp_0c') 
+
+temp1 <- temp_plot |> 
+  ggplot(aes(station, mean_val, fill = season_2023_2024))+
+  geom_bar(stat = 'identity', position = position_dodge(width = 0.8),
+           width = 0.7, color = 'black', size = 0.3)+
+  scale_fill_manual(values = c(
+    'DRY' = '#4682B4',
+    'WET' = '#567A4A'
+  ))+
+  labs(
+    x = 'Selected Sampling Stations',
+    y = 'Water Temperature',
+    title = 'Seasonal Variation of Temperature 
+    across the Sampling Stations in Unilag Location'
+  )+
+  theme_bw()+
+  theme(
+    legend.position = 'right',
+    legend.text = element_text(size = 10),
+    axis.title = element_text(size = 11, face = 'bold'),
+    axis.text = element_text(size = 10),
+    panel.grid.major.y = element_line(color = 'gray90', size = 0.3),
+    panel.border = element_rect(color = 'black',  fill =NA, size = 0.5)
+  )
+
+print(temp1)
+```
+
+### For Dissolved Oxygen
+
+```{r}
+#| echo: false
+## Seasonal Variation of dissolved oxygen across the five sampling points.
+oxygen_plot <- water_pivot |> 
+  filter(Parameter == 'do_mg_l')
+
+oxygen1 <- oxygen_plot |> 
+  ggplot(aes(station, mean_val, fill = season_2023_2024))+
+  geom_bar(stat = 'identity', position = position_dodge(width = 0.8), 
+           width = 0.7, color = 'black', size = 0.3)+
+  scale_fill_manual(
+    values = c(
+      'DRY' = '#4682B4',
+      'WET' = '#567A4A'
+    ))+
+  labs(
+    x = 'Selected Sampling Stations',
+    y = 'Dissolved Oxygen',
+    title = 'Seasonal Variation of Oxygen 
+    across the Sampling Stations in Unilag Location'
+  )+
+  theme_bw()+
+  theme(
+    legend.position = 'right',
+    legend.text = element_text(size = 10),
+    axis.title = element_text(size = 11, face = 'bold'),
+    axis.text = element_text(size = 10),
+    panel.grid.major.y = element_line(color = 'gray90', size = 0.3),
+    panel.border = element_rect(color = 'black',  fill =NA, size = 0.5)
+  )
+
+print(oxygen1)
+```
+
+### For Salinity
+
+```{r}
+#| echo: false
+## Season Variation for SALINITY across the Sampling Stations
+salin_plot <- water_pivot |> 
+  filter(Parameter == 'salinity_0_00')
+
+salin1 <- salin_plot |> 
+  ggplot(aes(station, mean_val, fill = season_2023_2024))+
+  geom_bar(stat = 'identity', position = position_dodge(width = 0.8),
+           width = 0.7, color = 'black', size = 0.3)+
+  scale_fill_manual(
+    values = c(
+      'DRY' = '#4682B4',
+      'WET' = '#567A4A'
+    ))+
+  labs(
+    x = 'Selected Sampling Stations',
+    y = 'Salinity Levels',
+    title = 'Seasonal Variation of Salinity Level  
+    across the Sampling Stations in Unilag Location'
+  )+
+  theme_bw()+
+  theme(
+    legend.position = 'right',
+    legend.text = element_text(size = 10),
+    axis.title = element_text(size = 11, face = 'bold'),
+    axis.text = element_text(size = 10),
+    panel.grid.major.y = element_line(color = 'gray90', size = 0.3),
+    panel.border = element_rect(color = 'black',  fill =NA, size = 0.5)
+  )
+print(salin1)
+```
+
+### For Total Dissolved Solids
+
+```{r}
+#| echo: false
+## Seasonal Variation for Total Dissolved solids across the Sampling Stations
+tds_plot <- water_pivot |> 
+  filter(Parameter == 'tds_mg_l')
+
+tds1 <- tds_plot |> 
+  ggplot(aes(station, mean_val, fill = season_2023_2024))+
+  geom_bar(stat = 'identity', position = position_dodge(width = 0.8),
+           width = 0.7, color = 'black', size = 0.3)+
+  scale_fill_manual(
+    values = c(
+      'DRY' = '#4682B4',
+      'WET' = '#567A4A'
+    )
+  )+
+  labs(
+    x = 'Selected Sampling Stations',
+    y = 'Total Dissolved Solid',
+    title = 'Seasonal Variation of Total Dissolved Solids  
+    across the Sampling Stations in Unilag Location'
+  )+
+  theme_bw()+
+  theme(
+    legend.position = 'right',
+    legend.text = element_text(size = 10),
+    axis.title = element_text(size = 11, face = 'bold'),
+    axis.text = element_text(size = 10),
+    panel.grid.major.y = element_line(color = 'gray90', size = 0.3),
+    panel.border = element_rect(color = 'black',  fill =NA, size = 0.5)
+  )  
+print(tds1)
+```
+
+### For Water Transparency
+
+```{r}
+#| echo: false
+## Seasonal Variation of Transparency across all Sampling Stations.
+trans_plot <- water_pivot |> 
+  filter(Parameter == 'transparency_m')
+
+trans1 <- trans_plot |> 
+  ggplot(aes(station, mean_val, fill = season_2023_2024))+
+  geom_bar(stat = 'identity', position = position_dodge(width = 0.8),
+           width = 0.7,color = 'black', size = 0.3)+
+  scale_fill_manual(
+    values = c(
+      'DRY' = '#4682B4',
+      'WET' = '#567A4A'
+    )
+  )+
+  labs(
+    x = 'Selected Sampling Stations',
+    y = 'Water Transparency',
+    title = 'Seasonal Variation of Water Transperancy 
+    across the Sampling Stations in Unilag Location'
+  )+
+  theme_minimal()+
+  theme(
+    legend.position = 'right',
+    legend.text = element_text(size = 10),
+    axis.title = element_text(size = 11, face = 'bold'),
+    axis.text = element_text(size = 10),
+    panel.grid.major.y = element_line(color = 'gray90', size = 0.3),
+    panel.border = element_rect(color = 'black',  fill =NA, size = 0.5)
+  )
+print(trans1)
+```
+
+### For pH Level
+
+```{r}
+#| echo: false
+## Seasonal Variation for pH across the Five Sampling Stations.
+ph_plot <- water_pivot |> 
+  filter(Parameter == 'p_h')
+
+ph1 <- ph_plot |> 
+  ggplot(aes(station, mean_val, fill = season_2023_2024))+
+  geom_bar(stat = 'identity', position = position_dodge(width = 0.8),
+           width = 0.7, color = 'black', size = 0.3)+
+  scale_fill_manual(
+    values = c(
+      'DRY' = '#4682b4',
+      'WET' = '#567a4a'
+    )
+  )+
+  labs(
+    x = 'Selected Sampling Stations',
+    y = 'pH Levels',
+    title = 'Seasonal Variation of pH levels 
+    across the Sampling Stations in Unilag Location'
+  )+
+  theme_minimal()+
+  theme(
+    legend.position = 'right',
+    legend.text = element_text(size = 10),
+    axis.title = element_text(size = 11, face = 'bold'),
+    axis.text = element_text(size = 10),
+    panel.grid.major.y = element_line(color = 'gray90', size = 0.3),
+    panel.border = element_rect(color = 'black',  fill =NA, size = 0.5)
+  )
+print(ph1)
+```
+
+## Correlation analysis showing the relationship between the physicohemical parameters across all stations during the Wet and Dry Season.
+
+```{r}
+#| echo: false
+dry_season2 <- water_data |>
+  select(water_temp_0c, do_mg_l, salinity_0_00, transparency_m, p_h,                tds_mg_l, conductivity_u_s_cm, station, season_2023_2024) |> 
+  filter(season_2023_2024 == 'DRY') 
+
+dry_season2$season_2023_2024 <- as.numeric(dry_season2$season_2023_2024)
+dry_season2$station <- as.numeric(dry_season2$station)
+
+x4 <- cor(dry_season2, use = 'complete.obs')
+```
+
+```{r}
+corrplot(x4, method = 'color', type = 'lower',
+         tl.col = 'black', tl.srt = 90,
+         addCoef.col = 'black', number.cex = 0.6,
+         title = 'Dry Season Correlation', mar = c(0,0,2,0))
+
+```
+
+```{r}
+#| echo: false
+w1 <- water_data |>
+  select(water_temp_0c, do_mg_l, salinity_0_00, transparency_m, p_h,                tds_mg_l, conductivity_u_s_cm, station, season_2023_2024) |> 
+  filter(season_2023_2024 == 'WET') 
+
+w1$season_2023_2024 <- as.numeric(w1$season_2023_2024)
+w1$station <- as.numeric(w1$station)
+
+x5 <- cor(w1, use = 'complete.obs')
+```
+
+```{r}
+corrplot(x5, method = 'color', type = 'lower',
+         tl.col = 'black', tl.srt = 90,
+         addCoef.col = 'black', number.cex = 0.6,
+         title = 'Wet Season Correlation', mar = c(0,0,0,0))
+```
+
+## **Correlation Table showing the relationship between the physicohemical parameters across all stations during the Wet and Dry Season.**
+
+```{r}
+## Correlation Analysis.
+corr_martrix_unilag <- cor(water_data[, c("do_mg_l", "p_h", "salinity_0_00",                                                 "water_temp_0c", "tds_mg_l", "transparency_m",                                     "conductivity_u_s_cm")])
+corr_martrix_unilag |> 
+  kable()
+
+write.csv(corr_martrix_unilag, 'Water_parameters_correlation_unilag.csv')
+```
+
+### *For Dry Season*
+
+```{r}
+#| echo: false 
+## For  Dry Season 
+dry_water <- water_data |>    
+  filter(season_2023_2024 == 'DRY')  
+corr_mart_dry_unilag <- cor(dry_water[, c("do_mg_l", "p_h", "salinity_0_00",                                                 "water_temp_0c", "tds_mg_l", "transparency_m",                                     "conductivity_u_s_cm")]) 
+corr_mart_dry_unilag |>    
+  kable()
+
+write.csv(corr_mart_dry_unilag, 'Water_parameters_correlation_unilag(dry).csv')
+```
+
+### *For Wet Season*
+
+```{r}
+#| echo: false 
+#| ## For Wet Season 
+wet_water <- water_data |>    
+  filter(season_2023_2024 == 'WET')  
+corr_mart_wet_unilag <- cor(wet_water[, c("do_mg_l", "p_h", "salinity_0_00",                                                 "water_temp_0c", "tds_mg_l", "transparency_m",                                     "conductivity_u_s_cm")])  
+corr_mart_wet_unilag |>    
+  kable()
+write.csv(corr_mart_wet_unilag, 'Water_parameters_correlation_unilag(wet).csv')
+```
+
+# For Second Location: National Theater
+
+## Data Importation and Data Cleaning
+
+```{r}
+
+## For the Second Location of the Research Study
+physico_data <- read_excel('PhD Analysis/WaterParameterLocation_1.xlsx',
+                           sheet = 4)
+physico_data |> 
+  head()
+```
+
+```{r}
+physico_data <- physico_data |> 
+  janitor::clean_names()
+
+physico_data <- physico_data |>
+  mutate(
+    station = as.factor(station),
+    season_2023_2024 = as.factor(season_2023_2024),
+    months = as.factor(months)
+  )
+```
+
+## Test for Normality/Distribution of Data(Physicochemical Parameters) across all sampling stations and seasons
+
+### For Temperature
+
+```{r}
+#| echo: false
+## Check for Normality of Temp, Salinity, dissolved Oxygen, and pH against
+## the stations and the seasons.
+## For Temperature
+temp2_model <- lm(water_temp_0c ~ station * season_2023_2024,
+                  data = physico_data)
+temp2_resd <- residuals(object = temp2_model)
+
+temp2_resd |> 
+  shapiro.test()
+
+```
+
+### For Dissolved Oxygen
+
+```{r}
+#| echo: false
+## For Dissolved Oxygen
+do2_model <- lm(do_mg_l ~ station * season_2023_2024,
+                data = physico_data)
+do2_resd <- residuals(object = do2_model)
+
+do2_resd |> 
+  shapiro.test()
+```
+
+### For Salinity
+
+```{r}
+## For Salinity
+salin2_model <- lm(salinity_0_00 ~ station * season_2023_2024,
+                   data = physico_data)
+salin2_resd <- residuals(object = salin2_model)
+
+salin2_resd |> 
+  shapiro.test()
+```
+
+### For pH Levels
+
+```{r}
+#| echo: false
+## For pH
+ph2_model <- lm(p_h ~ station * season_2023_2024,
+                data = physico_data)
+
+ph2_resd <- residuals(object = ph2_model)
+
+shapiro.test(ph2_resd)
+```
+
+## Test of Homogeneity of Variance for the Physicochemical Parameters across the Sampling Stations and the Seasons.
+
+### For Water Temperature
+
+```{r}
+#| echo: false
+## Test of Homogenity
+physico_levene_temp <- leveneTest(water_temp_0c ~ station * season_2023_2024, data = physico_data)
+
+physico_levene_temp |> 
+  kable()
+```
+
+### For pH levels
+
+```{r}
+#| echo: false
+physico_levene_ph <- leveneTest(p_h ~ station * season_2023_2024, data = physico_data)
+
+physico_levene_ph |> 
+  kable()
+```
+
+### For Dissolved Oxygen
+
+```{r}
+#| echo: false
+physico_levene_do <- leveneTest(do_mg_l ~ station * season_2023_2024, data = physico_data)
+
+physico_levene_do |> 
+  kable()
+```
+
+## Test of Significant differences in the mean of some-selected parameters across the Stations and Seasons
+
+### For Water Temperature
+
+```{r}
+## Check  for significant difference in the mean of temperature
+## across all the sampling stations using two way anova.
+
+temp2_anova <- aov(water_temp_0c ~ station * season_2023_2024,
+                   data = physico_data)
+
+temp2_anova |> 
+  anova() |> 
+  kable()
+
+temp2_anova |> 
+  TukeyHSD()
+```
+
+### For pH levels
+
+```{r}
+#| echo: false
+## For pH
+ph2_anova <- aov(p_h ~ station * season_2023_2024, 
+                 data = physico_data)
+ph2_anova |> 
+  anova() |> 
+  kable()
+
+ph2_anova |> 
+  TukeyHSD()
+```
+
+### For Dissolved Oxygen
+
+```{r}
+#| echo: false
+## For dissolved oxygen
+do2_anova <- aov(do_mg_l ~ station * season_2023_2024,
+                 data = physico_data)
+
+do2_anova |> 
+  anova() |> 
+  kable()
+
+do2_anova |> 
+  TukeyHSD()
+```
+
+## Table showing the Mean, SD AND SE values of some selected physicochemical parameters across the stations and seasons.
+
+```{r}
+## Plotting of Graphs and Exploratory data analysis
+physico_summary <- physico_data |> 
+  group_by(station, season_2023_2024) |> 
+  summarise(
+    mean_temp2 = mean(water_temp_0c),
+    sd_temp2 = sd(water_temp_0c),
+    se_temp2 = sd(water_temp_0c)/sqrt(n()),
+    mean_do2 = mean(do_mg_l),
+    sd_do2 = sd(do_mg_l),
+    se_do2 = sd(do_mg_l)/sqrt(n()),
+    mean_salin2 = mean(salinity_0_00),
+    sd_salin2 = sd(salinity_0_00),
+    se_salin2 = sd(salinity_0_00)/sqrt(n()),
+    mean_ph2 = mean(p_h),
+    sd_ph2 = sd(p_h),
+    se_ph2 = sd(p_h)/sqrt(n()),
+    mean_tds = mean(tds_mg_l),
+    sd_tds = sd(tds_mg_l),
+    se_tds = sd(tds_mg_l)/sqrt(n()),
+    mean_trans = mean(transparency_m),
+    sd_trans = sd(transparency_m),
+    se_trans = sd(transparency_m)/sqrt(n())
+  )
+ 
+
+physico_summary |> 
+  kable()
+```
+
+## Seasonal Variation of the different Physicochemical Parameters across the stations and seasons.
+
+### For Water Temeparture
+
+```{r}
+#| echo: false
+temp_phy <- physico_summary |> 
+  select(station, season_2023_2024, mean_temp2) |> 
+  ggplot(aes(station, mean_temp2, fill = season_2023_2024))+
+  geom_bar(stat = 'identity', position = position_dodge(width = 0.8),
+           width = 0.7, color = 'black', size = 0.3)+
+  scale_fill_manual(
+    values = c(
+      'DRY' = '#4682b4',
+      'WET' = '#567a4a'
+    )
+  )+
+  labs(
+    x = 'Selected Sampling Stations',
+    y = 'Temperature',
+    title = 'Seasonal Variation of Temperature 
+    across the Sampling Stations in NT Location'
+  )+
+  theme_minimal()+
+  theme(
+    legend.position = 'right',
+    legend.text = element_text(size = 10),
+    axis.title = element_text(size = 11, face = 'bold'),
+    axis.text = element_text(size = 10),
+    panel.grid.major.y = element_line(color = 'gray90', size = 0.3),
+    panel.border = element_rect(color = 'black',  fill =NA, size = 0.5)
+  )
+print(temp_phy)
+```
+
+### For Dissolved Oxygen
+
+```{r}
+#| echo: false
+do_phy <- physico_summary |> 
+  select(station, season_2023_2024, mean_do2) |> 
+  ggplot(aes(station, mean_do2, fill = season_2023_2024))+
+  geom_bar(stat = 'identity', position = position_dodge(width = 0.8),
+           width = 0.7, color = 'black', size = 0.3)+
+  scale_fill_manual(
+    values = c(
+      'DRY' = '#4682b4',
+      'WET' = '#567a4a'
+    )
+  )+
+  labs(
+    x = 'Selected Sampling Stations',
+    y = 'Dissolved Oxygen Levels',
+    title = 'Seasonal Variation of Dissolved Oxygen 
+    across the Sampling Stations in NT Location'
+  )+
+  theme_minimal()+
+  theme(
+    legend.position = 'right',
+    legend.text = element_text(size = 10),
+    axis.title = element_text(size = 11, face = 'bold'),
+    axis.text = element_text(size = 10),
+    panel.grid.major.y = element_line(color = 'gray90', size = 0.3),
+    panel.border = element_rect(color = 'black',  fill =NA, size = 0.5)
+  )
+print(do_phy)
+```
+
+### For pH levels
+
+```{r}
+#| echo: false
+ph_phy <- physico_summary |> 
+  select(station, season_2023_2024, mean_ph2) |> 
+  ggplot(aes(station, mean_ph2, fill = season_2023_2024))+
+  geom_bar(stat = 'identity', position = position_dodge(width = 0.8),
+           width = 0.7, color = 'black', size = 0.3)+
+  scale_fill_manual(
+    values =  c(
+      'DRY' = '#4682b4',
+      'WET' = '#567a4a'
+    )
+  )+
+  labs(
+    x = 'Selected Sampling Stations',
+    y = 'pH Levels',
+    title = 'Seasonal Variation of pH 
+    across the Sampling Stations in NT Location'
+  )+
+  theme_minimal()+
+  theme(
+    legend.position = 'right',
+    legend.text = element_text(size = 10),
+    axis.title = element_text(size = 11, face = 'bold'),
+    axis.text = element_text(size = 10),
+    panel.grid.major.y = element_line(color = 'gray90', size = 0.3),
+  )
+print(ph_phy)
+```
+
+### For Salinity Levels
+
+```{r}
+#| echo: false
+salin_phy <- physico_summary |> 
+  select(station, season_2023_2024, mean_salin2) |> 
+  ggplot(aes(station, mean_salin2, fill = season_2023_2024))+
+  geom_bar(stat = 'identity', position = position_dodge(width = 0.8),
+           width = 0.7, color = 'black', size = 0.3)+
+  scale_fill_manual(
+    values =  c(
+      'DRY' = '#4682b4',
+      'WET' = '#567a4a'
+    )
+  )+
+  labs(
+    x = 'Selected Sampling Stations',
+    y = 'Salinity Levels',
+    title = 'Seasonal Variation of Salinity 
+    across the Sampling Stations in NT Location'
+  )+
+  theme_minimal()+
+  theme(
+    legend.position = 'right',
+    legend.text = element_text(size = 10),
+    axis.title = element_text(size = 11, face = 'bold'),
+    axis.text = element_text(size = 10),
+    panel.grid.major.y = element_line(color = 'gray90', size = 0.3),
+    panel.border = element_rect(color = 'black',  fill =NA, size = 0.5)
+  )
+print(salin_phy)
+```
+
+### For Total Dissolved Solids
+
+```{r}
+#| echo: false
+tds_phy <- physico_summary |> 
+  select(station, mean_tds, season_2023_2024) |> 
+  ggplot(aes(station, mean_tds, fill = season_2023_2024))+
+  geom_bar(stat = 'identity', position =  position_dodge(width = 0.8),
+           width = 0.7, color = 'black', size = 0.3)+
+  scale_fill_manual(
+    values =  c(
+      'DRY' = '#4682b4',
+      'WET' = '#567a4a'
+    )
+  )+
+  labs(
+    x = 'Selected Sampling Stations',
+    y = 'Total Dissolved Solids',
+    title = 'Seasonal Variation of Total Dissolved Solids 
+    across the Sampling Stations in NT Location'
+  )+
+  theme_minimal()+
+  theme(
+    legend.position = 'right',
+    legend.text = element_text(size = 10),
+    axis.title = element_text(size = 11, face = 'bold'),
+    axis.text = element_text(size = 10),
+    panel.grid.major.y = element_line(color = 'gray90', size = 0.3),
+    panel.border = element_rect(color = 'black',  fill =NA, size = 0.5)
+  )
+print(tds_phy)
+```
+
+## Correlation analysis showing the relationship between the physicohemical parameters across all stations during the Wet and Dry Season.
+
+```{r}
+#| echo: false
+#| message: false
+y1 <- physico_data |>
+  select(water_temp_0c, do_mg_l, salinity_0_00, transparency_m, p_h,                tds_mg_l, conductivity_u_s_cm, station, season_2023_2024) |> 
+  filter(season_2023_2024 == 'WET') 
+
+y1$season_2023_2024 <- as.numeric(y1$season_2023_2024)
+y1$station <- as.numeric(y1$station)
+
+x2 <- cor(y1, use = 'complete.obs')
+```
+
+corrplot(x2, method = 'color', type = 'lower',
+
+tl.col = 'black', tl.srt = 90,
+
+addCoef.col = 'black', number.cex = 0.6,
+
+title = 'Wet Season Correlation across the Stations', mar = c(0,0,0,0))
+
+```{r}
+corrplot(x2, method = 'color', type = 'lower',
+         tl.col = 'black', tl.srt = 90,
+         addCoef.col = 'black', number.cex = 0.6,
+         title = 'Wet Season Correlation', mar = c(0,0,0,0))
+
+```
+
+```{r}
+#| echo: false
+dry_season1 <- physico_data |>
+  select(water_temp_0c, do_mg_l, salinity_0_00, transparency_m, p_h,                tds_mg_l, conductivity_u_s_cm, station, season_2023_2024) |> 
+  filter(season_2023_2024 == 'DRY') 
+
+dry_season1$season_2023_2024 <- as.numeric(dry_season1$season_2023_2024)
+dry_season1$station <- as.numeric(dry_season1$station)
+
+x3 <- cor(dry_season1, use = 'complete.obs')
+```
+
+```{r}
+corrplot(x3, method = 'color', type = 'lower',
+         tl.col = 'black', tl.srt = 90,
+         addCoef.col = 'black', number.cex = 0.6,
+         title = 'Dry Season Correlation', mar = c(0,0,0,0))
+
+```
+
+## **Correlation Table showing the relationship between the physicohemical parameters across all stations during the Wet and Dry Season.**
+
+```{r}
+## Correlation Analysis. 
+corr_martrix_Nther <- cor(physico_data[, c("do_mg_l", "p_h", "salinity_0_00",                                                 "water_temp_0c", "tds_mg_l", "transparency_m",                                     "conductivity_u_s_cm")]) 
+corr_martrix_Nther |>    
+  kable()  
+write.csv(corr_martrix_Nther, 'Water_parameters_correlation_Nther.csv')
+```
+
+### *For Dry Season*
+
+```{r}
+#| echo: false  
+## For  Dry Season  
+dry_water <- physico_data |>       
+  filter(season_2023_2024 == 'DRY')   
+corr_mart_dry_Nther <- cor(dry_water[, c("do_mg_l", "p_h", "salinity_0_00",                                                 "water_temp_0c", "tds_mg_l", "transparency_m",                                     "conductivity_u_s_cm")]) 
+  
+corr_mart_dry_Nther|>
+  kable()  
+write.csv(corr_mart_dry_Nther, 'Water_parameters_correlation_Nther(dry).csv')
+```
+
+### *For Wet Season*
+
+```{r}
+#| echo: false 
+## For Wet Season  
+wet_water <- water_data |>       
+  filter(season_2023_2024 == 'WET')   
+corr_mart_wet_Nther <- cor(wet_water[, c("do_mg_l", "p_h", "salinity_0_00",                                                 "water_temp_0c", "tds_mg_l", "transparency_m",                                     "conductivity_u_s_cm")])    
+  
+corr_mart_wet_Nther |>       
+  kable() 
+write.csv(corr_mart_wet_Nther, 'Water_parameters_correlation_Nther(wet).csv')
+```
